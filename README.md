@@ -1,2 +1,4 @@
-# longhorn
-AN AIO LINUX HARDENING SCRIPT TO BUILT FOR SYSTEM ADMINS AND ENTHUSIASTS ALIKE.
+# Project Longhorn
+
+An AIO Linux Hardening Sctipt, built for system admins and enthusiasts alike. 
+
