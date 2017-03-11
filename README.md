@@ -1,4 +1,4 @@
-# Project Longhorn
+# Project Longhorn - Pre-alpha
 
 An AIO Linux Hardening Sctipt, built for system admins and enthusiasts alike. 
 
@@ -10,7 +10,6 @@ Project Longhorn is an AIO Hardening script that is meant to be dynamic and modu
 
 Project Longhorn, while being free and open source will have it's own Gihhub repository where I will provide updates and changes to the script. I am planning on upkeeping this script well beyond graduation, as the project as it for one OS Distro choice is doable in this SIP's timeframe. Multiple Distros will take longer to complete. The goal is to release a fully compatible and fully tested on muliple OS builds where they have been put to the test againt red team and validated by a blue team. This may turn into a full framework in the future as well, however, I hope I am able to secure someone's box, one script at a time.
 
-# Debian Distro | Current Pre-Alpha
 
 # Arch Distro | Comming Soon
 
