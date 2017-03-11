@@ -15,7 +15,7 @@
 #  Allows all outbound traffic
 #  You can modify this to only allow certain traffic
 -A OUTPUT -p tcp --dport 22 -j ACCEPT
-#-A INPUT -p tcp -m state --state NEW --dport 3343 -j ACCEPT
+#-A INPUT -p tcp -m state --state NEW --dport 22 -j ACCEPT
 
 
 # Allows HTTP and HTTPS connections from anywhere (the normal ports for websites)
@@ -27,7 +27,7 @@
 #
 # THE -dport NUMBER IS THE SAME ONE YOU SET UP IN THE SSHD_CONFIG FILE
 #
--A INPUT -p tcp -m state --state NEW --dport 3343 -j ACCEPT
+-A INPUT -p tcp -m state --state NEW --dport 22 -j ACCEPT
 
 #limit SSH to 5 hits in 60 seconds
 #-I INPUT -p tcp --dport 22 -i eth0:0 -m state --state NEW -m recent --set
@@ -85,18 +85,18 @@ COMMIT
 
 
 -N stage1
--A stage1 -m recent --remove --name knock
--A stage1 -p tcp --dport 3456 -m recent --set --name knockknock
+-A stage1 -m recent --remove --name gate
+-A stage1 -p tcp --dport 3456 -m recent --set --name gatesecondary
 
 -N stage2
--A stage2 -m recent --remove --name knockkock
--A stage2 -p tcp --dport 2345 -m recent --set --name heavensdoor
+-A stage2 -m recent --remove --name gatesecondary
+-A stage2 -p tcp --dport 2345 -m recent --set --name placebo
 
 -N door
--A door -m recent --rcheck --seconds 5 --name knockknock -j stage2
--A door -m recent --rcheck --seconds 5 --name knock -j stage1
--A door -p tcp --dport 1234 -m recent --set --name knock
+-A door -m recent --rcheck --seconds 5 --name gatesecondary -j stage2
+-A door -m recent --rcheck --seconds 5 --name gate -j stage1
+-A door -p tcp --dport 1234 -m recent --set --name gate
 
 -A INPUT -m --state ESTABLISHED,RELATED -j ACCEPT
--A INPUT -p tcp --dport 22 -m recent --rcheck --seconds 5 --name heavensdoor -j ACCEPT
+-A INPUT -p tcp --dport 22 -m recent --rcheck --seconds 5 --name placebo -j ACCEPT
 -A INPUT -p tcp --syn -j doo
