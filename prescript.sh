@@ -69,12 +69,13 @@ sed -i '$ StrictModes yes' /etc/ssh/sshd_config
 
 
 
-add ssh new port to IPtables
-sudo iptables -A INPUT -p tcp -m tcp --dport 3343 -j ACCEPT
-sudo iptables-save > /root/my.active.firewall.rules
+#add ssh new port to IPtables
+#not needed now as i have a full iptables output later
+#sudo iptables -A INPUT -p tcp -m tcp --dport 22 -j ACCEPT
+#sudo iptables-save > /root/my.active.firewall.rules
 
 
-#secure mem
+#secure shared mem
 #sudo vi /etc/fstab
 sudo sed -i '$tmpfs     /dev/shm     tmpfs     defaults,noexec,nosuid     0     0' /etc/fstab
 
@@ -86,7 +87,7 @@ sudo dpkg-statoverride --update --add root admin 4750 /bin/su
 --------------------------
 
 
-## IP Spoofing protection
+# IP Spoofing protection
 net.ipv4.conf.all.rp_filter = 1
 net.ipv4.conf.default.rp_filter = 1
 
