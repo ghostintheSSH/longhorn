@@ -1,11 +1,22 @@
-#this will run, and it wont be pretty, IGNORE IP talbes, they are built for Godaddy VPS - they are limiting on what you can do 
+#this will run, and it wont be pretty, IGNORE IP talbes, they are built for Godaddy VPS which is where i am testing- they are limiting on what you can do 
 
+#!/bin/bash
+
+
+#jesus this is going to be ugly until i get all i want in here and start spring cleaning
+#vars for now FTW until i start asking user for var inputs 
+sshport = 22
 
 #update and remove baddies and install some  goodies
-sudo apt-get update && sudo apt-get upgrade && sudo apt-get purge rpcbind samba apache2 fetchmail postfix smnp* quota && sudo apt-get -y install nmap nano
+sudo apt-get update
+sudo apt-get upgrade
+
+#purge some baddies
+sudo apt-get purge rpcbind samba fetchmail postfix smnp* quota
+sudo apt-get -y install nmap nano
 
 
-#install ufw
+#install ufw NOTE will not work on godaddy VPS
 sudo apt-get -y install ufw
 
 #enable ufw enable ssh
@@ -17,37 +28,55 @@ sudo ufw enable && sudo ufw allow ssh
 
 #things to add to ssh config
 #will need to echo this, possibly make a copy of current config and add this to that, then out to a new config all together
-CHANGE PORT
+#sed works for replacing lines however some might not have added configs
+sed -i 'Ns/.*/Port $sshport/' /etc/ssh/sshd_config
+sed -i '$ PermitRootLogin no' /etc/ssh/sshd_config
+sed -i '$ PermitEmptyPasswords no' /etc/ssh/sshd_config
+sed -i '$ PermitUserEnvironment no' /etc/ssh/sshd_config
+sed -i '$ PrintLastLog no' /etc/ssh/sshd_config
+sed -i '$ PasswordAuthentication no' /etc/ssh/sshd_config
+sed -i '$ UseDNS no' /etc/ssh/sshd_config
+sed -i '$ ClientAliveInterval 300' /etc/ssh/sshd_config
+sed -i '$ ClientAliveCountMax 0' /etc/ssh/sshd_config
+sed -i '$ IgnoreRhosts yes' /etc/ssh/sshd_config
+sed -i '$ RhostsAuthentication no' /etc/ssh/sshd_config
+sed -i '$ RhostsRSAAuthentication no' /etc/ssh/sshd_config
+sed -i '$ RSAAuthentication yes' /etc/ssh/sshd_config
+sed -i '$ LoginGraceTime 150' /etc/ssh/sshd_config
+sed -i '$ AllowTcpForwarding no' /etc/ssh/sshd_config
+sed -i '$ X11Forwarding no' /etc/ssh/sshd_config
+sed -i '$ LogLevel VERBOSE' /etc/ssh/sshd_config
+sed -i '$ StrictModes yes' /etc/ssh/sshd_config
 
-PermitRootLogin no
-PermitEmptyPasswords no
-PermitUserEnvironment no
-PrintLastLog no
-PasswordAuthentication no
-UseDNS no
-ClientAliveInterval 300
-ClientAliveCountMax 0
-IgnoreRhosts yes
-RhostsAuthentication no
-RhostsRSAAuthentication no
-RSAAuthentication yes
-LoginGraceTime 150
-AllowTcpForwarding no
-X11Forwarding no
-LogLevel VERBOSE
-StrictModes yes
+#PermitRootLogin no
+#PermitEmptyPasswords no
+#PermitUserEnvironment no
+#PrintLastLog no
+#PasswordAuthentication no
+#UseDNS no
+#ClientAliveInterval 300
+#ClientAliveCountMax 0
+#IgnoreRhosts yes
+#RhostsAuthentication no
+#RhostsRSAAuthentication no
+#RSAAuthentication yes
+#LoginGraceTime 150
+#AllowTcpForwarding no
+#X11Forwarding no
+#LogLevel VERBOSE
+#StrictModes yes
 
 
 
 
 add ssh new port to IPtables
 sudo iptables -A INPUT -p tcp -m tcp --dport 3343 -j ACCEPT
-iptables-save > /root/my.active.firewall.rules
+sudo iptables-save > /root/my.active.firewall.rules
 
 
 #secure mem
-sudo vi /etc/fstab
-tmpfs     /dev/shm     tmpfs     defaults,noexec,nosuid     0     0
+#sudo vi /etc/fstab
+sudo sed -i '$tmpfs     /dev/shm     tmpfs     defaults,noexec,nosuid     0     0' /etc/fstab
 
 #add user to admin, limit su to admin
 sudo groupadd admin
