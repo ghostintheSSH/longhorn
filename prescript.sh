@@ -1,5 +1,8 @@
 #this will run, and it wont be pretty, IGNORE IP talbes, they are built for Godaddy VPS which is where i am testing- they are limiting on what you can do 
 
+#this is currently litterally a bunch of pasted commands from other scripts i have that i know i will need. 
+#basically making a collection before i come back and make it pretty and actually functional 
+
 #!/bin/bash
 
 
