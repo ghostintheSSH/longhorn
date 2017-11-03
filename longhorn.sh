@@ -1,9 +1,6 @@
 #!/bin/bash
 
 
-#things to do
-# call sysctl -p at end to reload settings for ipsec
-
 zenity --question --title="Project Longhorn" --text="The system will be updated.\n\nClick Yes to continue or No to move on."
    if [ "$?" -eq "0" ];then
 
