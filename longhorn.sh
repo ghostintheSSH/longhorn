@@ -4,14 +4,7 @@
 #things to do
 # call sysctl -p at end to reload settings for ipsec
 
-#sudo apt-get update > /dev/null 2>&1 && sudo apt-get -y upgrade > /dev/null 2>&1
-#sudo apt-get -y install unattended-upgrades apt-listchanges > /dev/null 2>&1
-#sudo dpkg-reconfigure -plow unattended-upgrades
-
-#sudo apt-get install nmap -y > /dev/null 2>&1
-
-#vars for some things
-
+#Global variables
 sharedmem="#secure shared memory
 tmpfs     /run/shm    tmpfs	defaults,noexec,nosuid	0	0"
 
@@ -77,7 +70,31 @@ ClientAliveCountMax 0
 #Sets max unauthenticated connections to SSH daemon to 2
 MaxStartups 2"
 
-#the above ip tables will kill ddos with threshhold set. force syn packet checks, drop all null, allow established outgoing, drop icmp
+
+
+#Start of commands
+
+Z_Prerequisites() {
+	zenity --question --title="Project Longhorn" --text="The system will be updated.\n\nClick Yes to continue or No to move on." 2> /dev/null
+		if [ "$?" -eq "0" ]; then
+			x=$( stdbuf -oL /bin/bash \-c '(sudo apt-get update && sudo apt-get upgrade \-y)' |
+				stdbuf -oL sed -n -e '/\[*$/ s/^/# /p' -e '/\*$/ s/^/# /p' |
+				zenity --progress --title="Updating package information..." --pulsate --width=600 --auto-close 2> /dev/null)
+			sudo dpkg --clear-avail 
+		else
+			Z_Exit && exit 0
+		fi
+
+	zenity --question --title="Project Longhorn" --text="Install dependancies.\n\nClick Yes to continue or No to move on." 2> /dev/null
+		if [ "$?" -eq "0" ]; then
+			x=$( stdbuf -oL /bin/bash \-c '(sudo apt-get install nmap \-y)' |
+				stdbuf -oL sed -n -e '/\[*$/ s/^/# /p' -e '/\*$/ s/^/# /p' |
+				zenity --progress --title="Installing dependancies and upgrading..." --pulsate --width=600 --auto-close 2> /dev/null)
+		else
+			Z_Exit && exit 0
+		fi
+	Z_Main
+}
 
 Z_Main() {
 	response=$(zenity --height=600 --width=800 --list --checklist \
@@ -86,7 +103,7 @@ Z_Main() {
 		TRUE "Kill Tools" "Disables unused tools & vulnerable features" \
 		TRUE "Purge Tools" "Purges unused tools" \
 		TRUE "Kill Cron" "Kills CRON for all users" \
-		TRUE "Secure /tmp & /var" "Creates partitions for & moves /tmp & /var" \
+		FALSE "Secure /tmp & /var" "Creates partitions for & moves /tmp & /var" \
 		TRUE "IPsec" "Protects against SYN floods, DDoS, broadcasting, direct ICMP pinging, & redirects" \
 		TRUE "Disable IPv6" "Disables IPv6" \
 		TRUE "Kill Spoofing" "Prevents IP spoofing" \
@@ -94,11 +111,6 @@ Z_Main() {
 		TRUE "IP Tables" "IP Table Additions: anti-portscan, logging, DDoS threshholds, IP ban for scanners/abusers" \
 		TRUE "Secure SSH" "Limits SSH connection attempts, anti-portscan, IP ban for scanners/abusers, hardens SSH" \
 		--separator=':' 2> /dev/null)
-
-	if [ -z "$response" ] ; then
-		echo "No Selection"
-		exit 1
-	fi
 
 	IFS=":" ; for word in $response ; do
 		case $word in
@@ -112,7 +124,7 @@ Z_Main() {
 			"Kill Spoofing") sudo sed -i '2,3 s/^/#/' /etc/host.conf && sudo bash -c "echo >> /etc/host.conf $nospoof" ;;
 			"Filter Ports") Z_Ports ;;
 			"IP Tables") Z_IP ;;
-			"Secure SSH") Z_SSH && sudo bash -c "echo >> /etc/ssh/sshd_config $secssh" ;;
+			"Secure SSH") Z_SSH && sudo bash -c "echo >> /etc/ssh/sshd_config $secssh" 2> /dev/null ;;
 		esac
 	done
 }
@@ -208,19 +220,22 @@ Z_RmTools() {
 	done
 }
 
-MoveDir() {
-	#NEEDS ZENITY WITH WARNING WINDOW & ASKING IF SURE THEY WANT TO CONTINUE WITH THIS FUNCTION
-	sudo dd if=/dev/zero of=/usr/tmpDSK bs=1024 count=1024000
-	sudo cp -Rpfv /tmp /tmpbackup
-	sudo mount -t tmpfs -o loop,noexec,nosuid,rw /usr/tmpDSK /tmp
-	sudo chmod 1777 /tmp
-	sudo cp -Rpf /tmpbackup/* /tmp/
-	sudo rm -rf /tmpbackup/*
-	sudo /usr/tmpDSK /tmp tmpfs loop,nosuid,noexec,rw 0 0
-	sudo mount -o remount /tmp
-	sudo mv /var/tmp /var/tmpold
-	sudo ln -s /tmp /var/tmp
-	sudo cp -prfv /var/tmpold/* /tmp/
+Z_TmpVar() {
+	zenity --question --title="Project Longhorn" --text="This will not work if you have FDE or already created /tmp and /var partitions during installation.
+Proceed at your risk.\n\nClick Yes to continue or No to move on." 2> /dev/null
+	if [ "$?" -eq "0" ]; then
+		sudo dd if=/dev/zero of=/usr/tmpDSK bs=1024 count=1024000 2> /dev/null
+		sudo cp -Rpfv /tmp /tmpbackup 2> /dev/null
+		sudo mount -t tmpfs -o loop,noexec,nosuid,rw /usr/tmpDSK /tmp 2> /dev/null
+		sudo chmod 1777 /tmp 2> /dev/null
+		sudo cp -Rpf /tmpbackup/* /tmp/ 2> /dev/null
+		sudo rm -rf /tmpbackup/* 2> /dev/null
+		sudo /usr/tmpDSK /tmp tmpfs loop,nosuid,noexec,rw 0 0 2> /dev/null
+		sudo mount -o remount /tmp 2> /dev/null
+		sudo mv /var/tmp /var/tmpold 2> /dev/null
+		sudo ln -s /tmp /var/tmp 2> /dev/null
+		sudo cp -prfv /var/tmpold/* /tmp/ 2> /dev/null
+	fi
 }
 
 Z_Ports() {
@@ -266,28 +281,64 @@ Z_IP() {
 }
 
 Z_SSH() {
-	sudo bash -c "echo >> /etc/hosts.deny \"sshd : ALL\""
+	response=$(sudo zenity --height=600 --width=800 --list --checklist \
+		--title='Project Longhorn - Secure SSH' --column=Boxes --column=Selections --column=Description \
+		TRUE "Block all IPs" "Blocks all IPs from connecting via SSH" \
+		TRUE "Allow IPs" "Allows specified IPs to connect via SSH" \
+		TRUE "Limit 22 Connections" "Limits connection attempts on port 22 to 3 in 30 seconds" \
+		TRUE "Limit SSH Connections" "Limits connection attempts for SSH to 3 in 30 seconds" \
+		TRUE "Disable root login" "Disables SSH login attempts as root user" \
+		TRUE "Disable empty passwords" "Blocks use of empty passwords" \
+		TRUE "Disable password use" "Disables logins with passwords to use keys" \
+		TRUE "Disable Protocol 1" "Changes Protocol version to 2" \
+		TRUE "Disable rsh" "Disables Rhosts authentication" \
+		TRUE "Disable host auth" "Disables host-based authentication" \
+		TRUE "Limit login time" "Limits login time to 60 seconds" \
+		TRUE "Disable X11 forwarding" "Disables X11forwarding" \
+		TRUE "Verbose logs" "Changes log levels to verbose" \
+		TRUE "Enable Strict" "Enables Strict Mode" \
+		--separator=':' 2> /dev/null)
 
-	sudo iptables -I INPUT -p tcp --dport 22 -i eth0 -m state --state NEW -m recent --set
-	sudo iptables -I INPUT -p tcp --dport 22 -i eth0 -m state --state NEW -m recent --update --seconds 30 --hitcount 3 -j DROP
-	sudo iptables -I INPUT -p tcp --dport ssh -i eth0 -m state --state NEW -m recent  --set
-	sudo iptables -I INPUT -p tcp --dport ssh -i eth0 -m state --state NEW -m recent  --update --seconds 30 --hitcount 3 -j DROP
-
-	sudo sed -i.bak 's/^\(PermitRootLogin \).*/\1no/' /etc/ssh/sshd_config
-	sudo sed -i.bak 's/^\(PermitEmptyPasswords \).*/\1no/' /etc/ssh/sshd_config
-	sudo sed -i '/#PasswordAuthentication/c\PasswordAuthentication' /etc/ssh/sshd_config
-	sudo sed -i.bak 's/^\(PasswordAuthentication \).*/\1no/' /etc/ssh/sshd_config
-	sudo sed -i.bak 's/^\(Protocol \).*/\12/' /etc/ssh/sshd_config
-	sudo sed -i.bak 's/^\(IgnoreRhosts \).*/\1yes/' /etc/ssh/sshd_config
-	sudo sed -i.bak 's/^\(RhostsAuthentication \).*/\1no/' /etc/ssh/sshd_config
-	sudo sed -i '/RhostsAuthentication/a RhostsRSAAuthentication no' /etc/ssh/sshd_config
-	sudo sed -i.bak 's/^\(RSAAuthentication \).*/\yes/' /etc/ssh/sshd_config
-	sudo sed -i.bak 's/^\(HostbasedAuthentication \).*/\1no/' /etc/ssh/sshd_config
-	sudo sed -i.bak 's/^\(LoginGraceTime \).*/\160/' /etc/ssh/sshd_config
-	sudo sed -i '/X11Forwarding/a AllowTcpForwarding no' /etc/ssh/sshd_config
-	sudo sed -i.bak 's/^\(X11Forwarding \).*/\1no/' /etc/ssh/sshd_config
-	sudo sed -i.bak 's/^\(LogLevel \).*/\1VERBOSE/' /etc/ssh/sshd_config
-	sudo sed -i.bak 's/^\(StrictModes \).*/\1yes/' /etc/ssh/sshd_config
+	IFS=":" ; for word in $response ; do
+		case $word in
+			"Block all IPs") sudo bash -c "echo >> /etc/hosts.deny \"sshd : ALL\"" ;;
+			"Allow IPs") Z_SSHallow ;;
+			"Limit 22 Connections") sudo iptables -I INPUT -p tcp --dport 22 -i eth0 -m state --state NEW -m recent --set && \
+				sudo iptables -I INPUT -p tcp --dport 22 -i eth0 -m state --state NEW -m recent --update --seconds 30 --hitcount 3 -j DROP ;;
+			"Limit SSH Connections") sudo iptables -I INPUT -p tcp --dport ssh -i eth0 -m state --state NEW -m recent  --set && \
+				sudo iptables -I INPUT -p tcp --dport ssh -i eth0 -m state --state NEW -m recent  --update --seconds 30 --hitcount 3 -j DROP ;;
+			"Disable root login") sudo sed -i.bak 's/^\(PermitRootLogin \).*/\1no/' /etc/ssh/sshd_config ;;
+			"Disable empty passwords") sudo sed -i.bak 's/^\(PermitEmptyPasswords \).*/\1no/' /etc/ssh/sshd_config ;;
+			"Disable password use") sudo sed -i '/#PasswordAuthentication/c\PasswordAuthentication' /etc/ssh/sshd_config && \
+				sudo sed -i.bak 's/^\(PasswordAuthentication \).*/\1no/' /etc/ssh/sshd_config ;;
+			"Disable Protocol 1") sudo sed -i.bak 's/^\(Protocol \).*/\12/' /etc/ssh/sshd_config ;;
+			"Disable rsh") sudo sed -i.bak 's/^\(IgnoreRhosts \).*/\1yes/' /etc/ssh/sshd_config && \
+				sudo sed -i.bak 's/^\(RhostsAuthentication \).*/\1no/' /etc/ssh/sshd_config && \
+				sudo sed -i '/RhostsAuthentication/a RhostsRSAAuthentication no' /etc/ssh/sshd_config && \
+				sudo sed -i.bak 's/^\(RSAAuthentication \).*/\yes/' /etc/ssh/sshd_config ;;
+			"Disable host auth") sudo sed -i.bak 's/^\(HostbasedAuthentication \).*/\1no/' /etc/ssh/sshd_config ;;
+			"Limit login time") sudo sed -i.bak 's/^\(LoginGraceTime \).*/\160/' /etc/ssh/sshd_config ;;
+			"Disable X11 forwarding") sudo sed -i '/X11Forwarding/a AllowTcpForwarding no' /etc/ssh/sshd_config \
+				&& sudo sed -i.bak 's/^\(X11Forwarding \).*/\1no/' /etc/ssh/sshd_config ;;
+			"Verbose logs") sudo sed -i.bak 's/^\(LogLevel \).*/\1VERBOSE/' /etc/ssh/sshd_config ;;
+			"Enable Strict") sudo sed -i.bak 's/^\(StrictModes \).*/\1yes/' /etc/ssh/sshd_config ;;
+		esac
+	done	
 }
 
-Z_Main
+Z_SSHallow() {
+	allowSSH=$(zenity --entry --text "Enter the IP address you want to allow SSH access" 2> /dev/null)
+	sudo bash -c "echo >> /etc/hosts.allow \"sshd : \" $allowSSH"
+	zenity --question --title="Project Longhorn" --text="Do you want to enter another IP?\n\nClick Yes to continue or No to move on." 2> /dev/null
+		if [ "$?" -eq "0" ]; then
+			Z_SSHallow
+		fi
+}
+
+Z_Exit() {
+	zenity --notification --text "Goodbye forever"
+	echo "How can you code your scripts if you don't secure your machine?"
+}
+
+Z_Prerequisites
+Z_Exit
