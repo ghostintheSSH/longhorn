@@ -4,11 +4,32 @@
 #things to do
 # call sysctl -p at end to reload settings for ipsec
 
-sudo apt-get update > /dev/null 2>&1 && sudo apt-get -y upgrade > /dev/null 2>&1
-sudo apt-get -y install unattended-upgrades apt-listchanges > /dev/null 2>&1
-sudo dpkg-reconfigure -plow unattended-upgrades
+zenity --question --title="Project Longhorn" --text="The system will be updated.\n\nClick Yes to continue or No to move on."
+   if [ "$?" -eq "0" ];then
 
-sudo apt-get install nmap -y > /dev/null 2>&1
+x=$( stdbuf -oL /bin/bash \-c '(sudo apt-get update \-y && sudp apt-get upgrade \-y)' 2>&1 |
+stdbuf -oL sed -n -e '/\[*$/ s/^/# /p' -e '/\*$/ s/^/# /p'|
+zenity --progress --title="Updating package information..." --pulsate \
+--width=600 --auto-close )
+
+sudo dpkg --clear-avail 
+
+else
+	exit 0
+fi
+
+zenity --question --title="Project Longhorn" --text="Install dependancies.\n\nClick Yes to continue or No to move on."
+	if [ "$?" -eq "0" ];then
+
+x=$( stdbuf -oL /bin/bash \-c '(sudo apt-get install nmap \-y)' |
+stdbuf -oL sed -n -e '/\[*$/ s/^/# /p' -e '/\*$/ s/^/# /p'|
+zenity --progress --title="Installing dependancies and upgrading..." --pulsate \
+--width=600 --auto-close )
+
+else
+	exit 0
+fi
+
 
 #vars for some things
 
