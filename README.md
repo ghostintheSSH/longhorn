@@ -1,4 +1,4 @@
-# Project Longhorn - Pre-alpha
+# Project Longhorn - Alpha ver.0.2
 
 An AIO Linux Hardening Sctipt, built for system admins and enthusiasts alike. 
 
