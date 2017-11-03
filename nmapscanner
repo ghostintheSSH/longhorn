@@ -1,0 +1,32 @@
+#!/bin/bash
+echo "Welcome to the Auto NMAP! Ver 1.0 :-)"
+echo
+echo "Please enter a range to scan.   Hint: Use X.X.X.X/xx format!"
+echo
+echo "Running host discovery"
+echo
+
+read range
+
+echo
+
+echo "What do you want to name the file outputted using host discovery?"
+echo
+read hostscan
+echo
+echo "Standby... Scanning     Note; It may ask for creds"
+echo
+
+sudo nmap -sn $range -oG $hostscan
+echo
+echo "Finished scan to discover hosts" #echos for whitespace FTW!
+echo
+
+while true; do
+read -p "Would you like to have these IPs scanned?: " yn
+	case $yn in
+		[Yy]* ) echo; echo "This scan will be outputted, what do you want to name it?"; echo; read scan; echo;echo "Using what options? i.e \"-sS -A -Pn\"";echo;echo "Formatting: nmap (-sS -A -Pn -p1-4000) X.X.X.X/xx";echo; echo "Please only enter options wanted or you will break this"; read options;echo "Awesome, Standby... This will take some time..."; d=${c/BB/23}; let "d = 0"; myarr=($(cat $hostscan | awk '{print $2}')); for i in "${myarr[@]}"; do let "d += 1"; done; for (( c =1; c <= d-2; c++)); do sudo nmap $options "${myarr[c]}" -oN $scan; done; break;;
+		[Nn]* ) echo; echo "Awe, shucks :-("; exit;;
+		* ) echo; echo "Please provide an answer...";;
+	esac
+done
